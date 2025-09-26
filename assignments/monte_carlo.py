@@ -43,26 +43,21 @@ def off_policy_mc_prediction_weighted_importance_sampling(
 
 
     for traj in trajs:
-        episode = list(traj)
         G, W = 0.0, 1.0
-
-        # Process trajectory in reverse order
-        for i in reversed(range(len(episode))):
-            s, a, r, s_next = episode[i]
+        for s, a, r, s_next in reversed(list(traj)):
             G = gamma * G + r
-            C[s, a] += W
-            if C[s, a] > 0.0:
-                Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
 
-            bpi_prob = bpi.action_prob(s, a)
-            if bpi_prob == 0:
-                break
-                
-            pi_prob = pi.action_prob(s, a)                
+            b_prob = bpi.action_prob(s, a)
+            if b_prob == 0.0:
+                break  # undefined ratio going further back
 
-            W *= pi_prob / bpi_prob
+            # include the CURRENT step's ratio first
+            W *= pi.action_prob(s, a) / b_prob
             if W == 0.0:
                 break
+
+            C[s, a] += W
+            Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
 
     return Q
         
@@ -107,26 +102,20 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
     """The importance sampling ratios."""
 
     for traj in trajs:
-
         G, W = 0.0, 1.0
-
-        for s, a, r, s_next in reversed(traj):
-
+        for s, a, r, s_next in reversed(list(traj)):
             G = gamma * G + r
-            
-          
-            bpi_prob = bpi.action_prob(s, a)
-            
-            if bpi_prob == 0.0:
+
+            b_prob = bpi.action_prob(s, a)
+            if b_prob == 0.0:
+                break
+
+            # include the CURRENT step's ratio first
+            W *= pi.action_prob(s, a) / b_prob
+            if W == 0.0:
                 break
                 
             C[s, a] += 1
             Q[s, a] += (W * G - Q[s, a]) / float(C[s, a])
-            
-            pi_prob = pi.action_prob(s, a)              
-
-            W *= pi_prob / bpi_prob
-            if W == 0.0:
-                break
 
     return Q
