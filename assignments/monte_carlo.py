@@ -120,7 +120,7 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
                 break
                 
             C[s, a] += 1
-            Q[s, a] += W * G - Q[s, a]) / C[s, a]
+            Q[s, a] += W * G - Q[s, a] / C[s, a]
 
             pi_prob = pi.action_prob(s, a)
 
