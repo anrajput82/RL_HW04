@@ -38,7 +38,7 @@ def off_policy_mc_prediction_weighted_importance_sampling(
     """The discount factor."""
     Q: np.ndarray = initQ.copy()
     """The Q(s, a) function to estimate."""
-    C: np.ndarray = np.zeros((nS, nA))
+    C: np.ndarray = np.zeros((nS, nA), dtype=np.float64)
     """The importance sampling ratios."""
 
 
@@ -103,7 +103,7 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
     """The number of actions in the environment."""
     Q: np.ndarray = initQ.copy()
     """The Q(s, a) function to estimate."""
-    C: np.ndarray = np.zeros((nS, nA))
+    C: np.ndarray = np.zeros((nS, nA), dtype=np.float64)
     """The importance sampling ratios."""
 
     for traj in trajs:
@@ -115,16 +115,14 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
             s, a, r, s_next = episode[i]
             G = gamma * G + r
             
+            pi_prob = pi.action_prob(s, a)            
             bpi_prob = bpi.action_prob(s, a)
-            if bpi_prob == 0:
+            
+            if bpi_prob == 0.0:
                 break
                 
             C[s, a] += 1
-            Q[s, a] += W * G - Q[s, a] / C[s, a]
-
-            pi_prob = pi.action_prob(s, a)
-
-
+            Q[s, a] += W * G - Q[s, a]) / C[s, a]
 
             W *= pi_prob / bpi_prob
             if W == 0.0:
