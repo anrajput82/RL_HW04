@@ -43,21 +43,27 @@ def off_policy_mc_prediction_weighted_importance_sampling(
 
 
     for traj in trajs:
-        G, W = 0.0, 1.0
-        for s, a, r, s_next in reversed(list(traj)):
+        episode = list(traj)
+        G = 0.0
+        W = 1.0
+
+        # work backwards through the episode
+        for i in reversed(range(len(episode))):
+            s, a, r, s_next = episode[i]
             G = gamma * G + r
 
-            b_prob = bpi.action_prob(s, a)
-            if b_prob == 0.0:
-                break  # undefined ratio going further back
-
-            # include the CURRENT step's ratio first
-            W *= pi.action_prob(s, a) / b_prob
-            if W == 0.0:
-                break
-
             C[s, a] += W
-            Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
+            if C[s, a] > 0.0:
+                Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
+
+            # update importance weight
+            pi_prob = pi.action_prob(s, a)
+            bpi_prob = bpi.action_prob(s, a)
+            if bpi_prob == 0.0:
+                break  # behavior prob zero -> undefined ratio; stop
+            W *= pi_prob / bpi_prob
+            if W == 0.0:
+                break  # target prob zero from here on, no more contribution
 
     return Q
         
@@ -102,20 +108,28 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
     """The importance sampling ratios."""
 
     for traj in trajs:
-        G, W = 0.0, 1.0
-        for s, a, r, s_next in reversed(list(traj)):
+        episode = list(traj)
+        G = 0.0
+        W = 1.0
+
+        # work backwards through the episode
+        for i in reversed(range(len(episode))):
+            s, a, r, s_next = episode[i]
             G = gamma * G + r
 
-            b_prob = bpi.action_prob(s, a)
-            if b_prob == 0.0:
-                break
-
-            # include the CURRENT step's ratio first
-            W *= pi.action_prob(s, a) / b_prob
-            if W == 0.0:
-                break
-                
+            # ordinary IS: treat X = W * G as the sample, average by count
             C[s, a] += 1
-            Q[s, a] += (W * G - Q[s, a]) / float(C[s, a])
+            X = W * G
+            # incremental mean update for Q(s,a)
+            Q[s, a] += (X - Q[s, a]) / C[s, a]
+
+            # update importance weight
+            pi_prob = pi.action_prob(s, a)
+            bpi_prob = bpi.action_prob(s, a)
+            if bpi_prob == 0.0:
+                break  # undefined ratio; stop backing up further
+            W *= pi_prob / bpi_prob
+            if W == 0.0:
+                break  # target prob zero onward; no more contribution
 
     return Q
