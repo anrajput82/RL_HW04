@@ -118,10 +118,9 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
             G = gamma * G + r
 
             # ordinary IS: treat X = W * G as the sample, average by count
-            C[s, a] += 1
-            X = W * G
-            # incremental mean update for Q(s,a)
-            Q[s, a] += (X - Q[s, a]) / C[s, a]
+            C[s, a] += W
+            if C[s, a] > 0:
+                Q[s, a] += W * (G - Q[s, a]) / C[s, a]
 
             # update importance weight
             pi_prob = pi.action_prob(s, a)
