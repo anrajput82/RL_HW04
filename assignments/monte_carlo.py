@@ -44,8 +44,7 @@ def off_policy_mc_prediction_weighted_importance_sampling(
 
     for traj in trajs:
         episode = list(traj)
-        G = 0.0
-        W = 1.0
+        G, W = 0.0, 1.0
 
         # Process trajectory in reverse order
         for i in reversed(range(len(episode))):
@@ -55,10 +54,11 @@ def off_policy_mc_prediction_weighted_importance_sampling(
             if C[s, a] > 0.0:
                 Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
 
-            pi_prob = pi.action_prob(s, a)
             bpi_prob = bpi.action_prob(s, a)
             if bpi_prob == 0:
                 break
+                
+            pi_prob = pi.action_prob(s, a)                
 
             W *= pi_prob / bpi_prob
             if W == 0.0:
@@ -107,22 +107,23 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
     """The importance sampling ratios."""
 
     for traj in trajs:
-        episode = list(traj)
-        G = 0.0
-        W = 1.0
 
-        for i in reversed(range(len(episode))):
-            s, a, r, s_next = episode[i]
+        G, W = 0.0, 1.0
+
+        for s, a, r, s_next in reversed(traj):
+
             G = gamma * G + r
             
-            pi_prob = pi.action_prob(s, a)            
+          
             bpi_prob = bpi.action_prob(s, a)
             
             if bpi_prob == 0.0:
                 break
                 
             C[s, a] += 1
-            Q[s, a] += (W * G - Q[s, a]) / C[s, a]
+            Q[s, a] += (W * G - Q[s, a]) / float(C[s, a])
+            
+            pi_prob = pi.action_prob(s, a)              
 
             W *= pi_prob / bpi_prob
             if W == 0.0:
