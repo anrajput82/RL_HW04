@@ -41,44 +41,46 @@ def off_policy_mc_prediction_weighted_importance_sampling(
     C: np.ndarray = np.zeros((nS, nA))
     """The importance sampling ratios."""
 
-
-
-     for traj in trajs:
-       
+    # Process each trajectory
+    for traj in trajs:
+        # Convert trajectory to list for easier manipulation
         episode = list(traj)
         
-       
-        G = 0.0  
-        W = 1.0  
+        # Initialize variables for this episode
+        G = 0.0  # Return
+        W = 1.0  # Importance sampling ratio
         
+        # Process trajectory in reverse order
         for i in reversed(range(len(episode))):
             s, a, r, s_next = episode[i]
-                      
+            
+            # Update return G
             G = gamma * G + r
             
+            # Update cumulative importance sampling ratio C
             C[s, a] += W
             
+            # Update Q value using weighted average
             if C[s, a] > 0:
                 Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
             
-
+            # Update importance sampling ratio W
+            # W = W * π(a|s) / b(a|s)
             pi_prob = pi.action_prob(s, a)
             bpi_prob = bpi.action_prob(s, a)
             
             if bpi_prob == 0:
-
+                # If behavior policy probability is 0, we can't use this trajectory
                 break
             
             W *= pi_prob / bpi_prob
             
- 
+            # If W becomes 0, no point in continuing
             if W == 0:
                 break
 
     return Q
 
-    
-    
 def off_policy_mc_prediction_ordinary_importance_sampling(
     observation_space: gym.spaces.Discrete,
     action_space: gym.spaces.Discrete,
@@ -119,36 +121,41 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
     C: np.ndarray = np.zeros((nS, nA))
     """The importance sampling ratios."""
 
-
+    # Process each trajectory
     for traj in trajs:
- 
+        # Convert trajectory to list for easier manipulation
         episode = list(traj)
         
-
-        G = 0.0  
-        W = 1.0  
+        # Initialize variables for this episode
+        G = 0.0  # Return
+        W = 1.0  # Importance sampling ratio
         
-
+        # Process trajectory in reverse order
         for i in reversed(range(len(episode))):
             s, a, r, s_next = episode[i]
-           
+            
+            # Update return G
             G = gamma * G + r
             
+            # For ordinary importance sampling, C accumulates the importance weights
             C[s, a] += W
             
-
+            # Update Q value using ordinary importance sampling
             if C[s, a] > 0:
                 Q[s, a] += W * (G - Q[s, a]) / C[s, a]
             
-
+            # Update importance sampling ratio W
+            # W = W * π(a|s) / b(a|s)
             pi_prob = pi.action_prob(s, a)
             bpi_prob = bpi.action_prob(s, a)
             
             if bpi_prob == 0:
-
+                # If behavior policy probability is 0, we can't use this trajectory
                 break
             
             W *= pi_prob / bpi_prob
+            
+            # If W becomes 0, no point in continuing
             if W == 0:
                 break
 
