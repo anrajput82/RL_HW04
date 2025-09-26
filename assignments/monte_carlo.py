@@ -52,7 +52,7 @@ def off_policy_mc_prediction_weighted_importance_sampling(
             s, a, r, s_next = episode[i]
             G = gamma * G + r
             C[s, a] += W
-            if C[s, a] > 0:
+            if C[s, a] > 0.0:
                 Q[s, a] += (W / C[s, a]) * (G - Q[s, a])
 
             pi_prob = pi.action_prob(s, a)
@@ -61,7 +61,7 @@ def off_policy_mc_prediction_weighted_importance_sampling(
                 break
 
             W *= pi_prob / bpi_prob
-            if W == 0:
+            if W == 0.0:
                 break
 
     return Q
@@ -114,17 +114,20 @@ def off_policy_mc_prediction_ordinary_importance_sampling(
         for i in reversed(range(len(episode))):
             s, a, r, s_next = episode[i]
             G = gamma * G + r
-            C[s, a] += W
-            if C[s, a] > 0:
-                Q[s, a] += W * (G - Q[s, a]) / C[s, a]
-
-            pi_prob = pi.action_prob(s, a)
+            
             bpi_prob = bpi.action_prob(s, a)
             if bpi_prob == 0:
                 break
+                
+            C[s, a] += 1
+            Q[s, a] += W * G - Q[s, a]) / C[s, a]
+
+            pi_prob = pi.action_prob(s, a)
+
+
 
             W *= pi_prob / bpi_prob
-            if W == 0:
+            if W == 0.0:
                 break
 
     return Q
